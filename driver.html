@@ -1,0 +1,841 @@
+<!DOCTYPE html>
+<html lang="en" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EcoTrack | Pro Driver Dashboard</title>
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: { 50: '#ecfdf5', 100: '#d1fae5', 400: '#34d399', 500: '#10b981', 600: '#059669', 700: '#047857', 900: '#064e3b' },
+                        leaf: { 50: '#f7fee7', 500: '#84cc16', 600: '#65a30d' },
+                        midnight: '#0f172a',
+                        darkbg: '#0f172a',
+                        darkcard: '#1e293b'
+                    },
+                    fontFamily: { sans: ['Outfit', 'sans-serif'] },
+                    animation: {
+                        'float-slow': 'float 6s ease-in-out infinite',
+                        'float-medium': 'float 4s ease-in-out infinite',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body { font-family: 'Outfit', sans-serif; transition: background-color 0.3s, color 0.3s; }
+        .fade-in { animation: fadeIn 0.4s ease-out forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        
+        @keyframes float { 0% { transform: translateY(0px); } 50% { transform: translateY(-10px); } 100% { transform: translateY(0px); } }
+        
+        .nav-btn { width: 100%; display: flex; align-items: center; padding: 0.75rem 2rem; transition: all 0.2s; font-weight: 500; color: #64748b; border-right: 3px solid transparent; }
+        .nav-btn:hover { background-color: #f0fdf4; color: #059669; }
+        .dark .nav-btn:hover { background-color: #1e293b; color: #34d399; }
+        .nav-btn.active { background-color: #ecfdf5; color: #059669; border-right: 3px solid #059669; }
+        .dark .nav-btn.active { background-color: #064e3b; color: #34d399; border-right: 3px solid #34d399; }
+        
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 20px; }
+        .dark .custom-scrollbar::-webkit-scrollbar-thumb { background-color: #475569; }
+
+        .nature-pattern {
+            background-image: radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.1) 0%, transparent 20%),
+                              radial-gradient(circle at 80% 80%, rgba(255, 255, 255, 0.1) 0%, transparent 20%);
+        }
+
+        .toggle-checkbox:checked { right: 0; border-color: #10b981; }
+        .toggle-checkbox:checked + .toggle-label { background-color: #10b981; }
+        .toggle-checkbox:checked + .toggle-label:before { transform: translateX(100%); }
+        .toggle-label { width: 48px; height: 24px; position: relative; display: block; background: #cbd5e1; border-radius: 9999px; cursor: pointer; transition: 0.3s; }
+        .toggle-label:before { content: ''; position: absolute; top: 2px; left: 2px; width: 20px; height: 20px; background: #fff; border-radius: 9999px; transition: 0.3s; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+        
+        .otp-inputs input { width: 3.5rem; height: 4rem; text-align: center; font-size: 2rem; font-weight: 800; border-radius: 12px; background: #f8fafc; border: 2px solid #e2e8f0; transition: all 0.2s; color: #0f172a; }
+        .dark .otp-inputs input { background: #1e293b; border-color: #334155; color: white; }
+        .otp-inputs input:focus { border-color: #10b981; outline: none; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2); }
+
+        /* --- RESPONSIVE MODAL LOGIC --- */
+        #active-job-modal { transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
+        
+        /* Mobile: Bottom Sheet style */
+        @media (max-width: 768px) {
+            #active-job-modal.closed { transform: translateY(100%); }
+            #active-job-modal.open { transform: translateY(0); }
+            #active-job-modal { border-radius: 24px 24px 0 0; top: auto; bottom: 0; height: 90vh; }
+        }
+
+        /* Desktop: Centered Modal style */
+        @media (min-width: 769px) {
+            #active-job-modal { 
+                background-color: rgba(0,0,0,0.6); 
+                align-items: center; 
+                justify-content: center;
+                backdrop-filter: blur(4px);
+            }
+            #active-job-modal.closed { opacity: 0; pointer-events: none; }
+            #active-job-modal.open { opacity: 1; pointer-events: auto; }
+            #active-job-modal > div { 
+                background: white; 
+                border-radius: 24px; 
+                width: 100%; 
+                max-width: 500px; 
+                max-height: 85vh; 
+                box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); 
+                overflow: hidden;
+                display: flex;
+                flex-direction: column;
+            }
+            .dark #active-job-modal > div { background: #0f172a; border: 1px solid #1e293b; }
+        }
+    </style>
+</head>
+<body class="bg-slate-50 dark:bg-darkbg h-screen flex overflow-hidden text-slate-800 dark:text-slate-200 relative">
+
+    <div id="active-job-modal" class="fixed inset-0 z-[60] closed flex flex-col">
+        <div class="flex flex-col h-full md:h-auto w-full bg-white dark:bg-slate-900 md:rounded-3xl overflow-hidden">
+            
+            <div class="p-4 flex justify-between items-center bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm border-b border-slate-100 dark:border-slate-800">
+                <div class="flex items-center gap-2">
+                    <div class="w-3 h-3 rounded-full bg-emerald-500 animate-pulse"></div>
+                    <span class="font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-widest text-xs">Live Job</span>
+                </div>
+                <button onclick="app.minimizeModal()" class="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500 hover:text-midnight dark:hover:text-white transition-colors">
+                    <i class="fas fa-chevron-down text-sm"></i>
+                </button>
+            </div>
+
+            <div id="modal-content-wrapper" class="flex-1 overflow-y-auto p-5 flex flex-col items-center w-full relative z-10">
+                <div class="w-full text-center mb-6">
+                    <div class="w-16 h-16 bg-emerald-100 dark:bg-emerald-900/30 rounded-full flex items-center justify-center text-3xl mx-auto mb-3 text-emerald-600">
+                        <i class="fas fa-recycle"></i>
+                    </div>
+                    <h1 id="modal-type" class="text-2xl font-extrabold text-midnight dark:text-white mb-1">...</h1>
+                    <div class="flex items-center justify-center gap-2 mb-2 text-slate-600 dark:text-slate-300 text-sm">
+                        <i class="fas fa-user-circle"></i> <span id="modal-resident" class="font-bold">Resident Name</span>
+                    </div>
+                    <p id="modal-address" class="text-slate-500 dark:text-slate-400 font-medium text-sm px-4 leading-relaxed mb-3 bg-slate-50 dark:bg-slate-800 p-2 rounded-lg">Loading address...</p>
+                    <div class="inline-flex items-center gap-2 bg-emerald-50 dark:bg-emerald-900/20 px-4 py-2 rounded-full border border-emerald-100 dark:border-emerald-800">
+                        <span class="text-xs font-bold text-emerald-700 dark:text-emerald-400 uppercase">Collect Cash</span>
+                        <span id="modal-price" class="text-lg font-bold text-emerald-700 dark:text-emerald-400">₹0</span>
+                    </div>
+                </div>
+                
+                <div id="travel-phase" class="w-full flex flex-col gap-3 fade-in">
+                    <a id="modal-maps-btn" href="#" target="_blank" class="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold text-base rounded-2xl flex items-center justify-center gap-2 transition-all shadow-lg active:scale-95">
+                        <i class="fas fa-location-arrow animate-bounce"></i> <span>START NAVIGATION</span>
+                    </a>
+                    <div class="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-100 dark:border-slate-700 mt-2">
+                        <label class="block text-[10px] font-bold text-slate-400 uppercase mb-3 tracking-widest text-center">Notify Resident</label>
+                        <div class="grid grid-cols-2 gap-3">
+                            <button onclick="app.sendTripUpdate('On the Way 🚚', this)" class="status-btn py-3 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-800 hover:bg-emerald-50 hover:border-emerald-200 transition-all">🚚 <span>On the Way</span></button>
+                            <button onclick="app.sendTripUpdate('Arriving in 10m ⏱️', this)" class="status-btn py-3 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-800 hover:bg-emerald-50 hover:border-emerald-200 transition-all">⏱️ <span>10 Mins</span></button>
+                            <button onclick="app.sendTripUpdate('Nearby 📍', this)" class="status-btn py-3 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-800 hover:bg-emerald-50 hover:border-emerald-200 transition-all">📍 <span>Nearby</span></button>
+                            <button onclick="app.sendTripUpdate('Reached 👋', this)" class="status-btn py-3 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-800 hover:bg-emerald-50 hover:border-emerald-200 transition-all">👋 <span>Reached</span></button>
+                        </div>
+                    </div>
+                    <button onclick="app.switchToPickupPhase()" class="mt-4 w-full py-4 bg-midnight dark:bg-white text-white dark:text-midnight font-bold text-sm rounded-xl shadow-lg flex items-center justify-center gap-2 hover:opacity-90 transition-opacity"><i class="fas fa-box-open"></i> <span>I've Arrived & Collected</span></button>
+                </div>
+
+                <div id="pickup-phase" class="hidden w-full bg-slate-50 dark:bg-slate-800/50 p-6 rounded-2xl border border-slate-100 dark:border-slate-700 fade-in">
+                    <button onclick="app.backToTravel()" class="mb-6 text-xs font-bold text-slate-400 hover:text-slate-600 flex items-center gap-1"><i class="fas fa-arrow-left"></i> Back</button>
+                    <label class="block text-center text-xs font-bold text-slate-400 uppercase mb-4 tracking-[0.2em]">ENTER RESIDENT OTP</label>
+                    <form onsubmit="app.verifyOtp(event)" class="relative">
+                        <div id="otp-container" class="flex justify-center gap-3 otp-inputs mb-8">
+                            <input type="text" maxlength="1" oninput="app.focusNext(this)" onkeydown="app.focusPrev(event, this)" class="otp-box w-12 h-14 text-2xl !rounded-xl" inputmode="numeric" autocomplete="off" />
+                            <input type="text" maxlength="1" oninput="app.focusNext(this)" onkeydown="app.focusPrev(event, this)" class="otp-box w-12 h-14 text-2xl !rounded-xl" inputmode="numeric" autocomplete="off" />
+                            <input type="text" maxlength="1" oninput="app.focusNext(this)" onkeydown="app.focusPrev(event, this)" class="otp-box w-12 h-14 text-2xl !rounded-xl" inputmode="numeric" autocomplete="off" />
+                            <input type="text" maxlength="1" oninput="app.focusNext(this)" onkeydown="app.focusPrev(event, this)" class="otp-box w-12 h-14 text-2xl !rounded-xl" inputmode="numeric" autocomplete="off" />
+                        </div>
+                        <div id="otp-error" class="text-center text-red-500 text-xs font-bold hidden mb-4 bg-red-50 dark:bg-red-900/20 py-2 rounded-lg"><i class="fas fa-exclamation-circle"></i> Incorrect OTP.</div>
+                        <button type="submit" id="verify-btn" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-4 rounded-xl shadow-lg shadow-emerald-500/30 transition-all transform active:scale-95 flex items-center justify-center gap-2 text-base"><span>Complete Job</span> <i class="fas fa-check-circle"></i></button>
+                    </form>
+                </div>
+                
+                <button onclick="app.showReportView()" class="mt-6 text-xs font-bold text-red-400 hover:text-red-500 uppercase tracking-wider flex items-center gap-2 p-2 hover:bg-red-50 rounded-lg transition-colors"><i class="fas fa-flag"></i> <span>Report / Cancel Job</span></button>
+            </div>
+
+            <div id="modal-success-view" class="hidden flex-1 flex-col items-center justify-center p-6 text-center z-30">
+                <div class="w-24 h-24 bg-emerald-500 rounded-full flex items-center justify-center text-white text-5xl shadow-2xl shadow-emerald-500/40 mb-6 animate-bounce"><i class="fas fa-check"></i></div>
+                <h2 class="text-3xl font-extrabold text-midnight dark:text-white mb-2">Great Job!</h2>
+                <div class="bg-slate-50 dark:bg-slate-800 p-8 rounded-3xl w-full max-w-xs border border-slate-100 dark:border-slate-700 mt-4">
+                    <div class="text-xs font-bold text-slate-400 uppercase mb-2">Earnings Added</div>
+                    <div class="text-4xl font-black text-emerald-600" id="success-amount">₹0</div>
+                </div>
+            </div>
+
+            <div id="modal-report-view" class="hidden flex-1 overflow-y-auto p-6 flex flex-col w-full relative z-10">
+                <h2 class="text-xl font-bold text-midnight dark:text-white mb-6">Report Issue</h2>
+                <div class="space-y-4 mb-6">
+                    <label class="flex items-center gap-4 p-4 border border-slate-200 dark:border-slate-700 rounded-2xl cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+                        <input type="radio" name="reportReason" value="Customer unavailable" class="w-5 h-5 text-emerald-600">
+                        <span class="text-sm font-bold">Customer unavailable</span>
+                    </label>
+                    <label class="flex items-center gap-4 p-4 border border-slate-200 dark:border-slate-700 rounded-2xl cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+                        <input type="radio" name="reportReason" value="Wrong Address" class="w-5 h-5 text-emerald-600">
+                        <span class="text-sm font-bold">Wrong Address / Location</span>
+                    </label>
+                    <label class="flex items-center gap-4 p-4 border border-slate-200 dark:border-slate-700 rounded-2xl cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+                        <input type="radio" name="reportReason" value="Waste Mismatch" class="w-5 h-5 text-emerald-600">
+                        <span class="text-sm font-bold">Waste Type Mismatch</span>
+                    </label>
+                </div>
+                <textarea id="report-comment" placeholder="Add specific details..." class="w-full p-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm mb-6 outline-none focus:border-red-400" rows="3"></textarea>
+                <div class="flex gap-4 mt-auto">
+                    <button onclick="app.closeReportView()" class="flex-1 py-3.5 font-bold text-slate-500 hover:bg-slate-100 rounded-xl transition-colors text-sm">Back</button>
+                    <button onclick="app.submitReport()" class="flex-1 py-3.5 bg-red-500 hover:bg-red-600 text-white font-bold rounded-xl shadow-lg transition-colors text-sm">Submit & Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div id="sidebar-overlay" onclick="app.toggleSidebar()" class="fixed inset-0 bg-black/50 z-40 opacity-0 pointer-events-none transition-opacity duration-300 md:hidden backdrop-blur-sm"></div>
+    
+    <aside id="sidebar" class="fixed inset-y-0 left-0 z-50 w-64 bg-white dark:bg-darkcard border-r border-slate-200 dark:border-slate-700 flex flex-col transform -translate-x-full transition-transform duration-300 md:translate-x-0 md:static">
+        <div class="h-20 flex items-center justify-between px-8 border-b border-slate-100 dark:border-slate-700">
+            <div class="flex items-center"><div class="w-8 h-8 bg-brand-600 rounded-lg flex items-center justify-center text-white mr-3 shadow-lg shadow-brand-500/30"><i class="fas fa-leaf"></i></div><span class="font-bold text-xl text-midnight dark:text-white">EcoTrack</span></div>
+            <button onclick="app.toggleSidebar()" class="md:hidden text-slate-400 hover:text-red-500"><i class="fas fa-times text-xl"></i></button>
+        </div>
+        <nav class="flex-1 overflow-y-auto py-6 space-y-1">
+            <button onclick="app.switchView('dashboard')" id="nav-dashboard" class="nav-btn active"><i class="fas fa-chart-line w-6"></i> <span>Dashboard</span></button>
+            <button onclick="app.switchView('requests')" id="nav-requests" class="nav-btn relative"><i class="fas fa-map-location-dot w-6"></i> <span>Live Requests</span><span id="nav-badge" class="absolute right-4 bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full hidden">0</span></button>
+            <button onclick="app.switchView('dumps')" id="nav-dumps" class="nav-btn"><i class="fas fa-dumpster-fire w-6"></i> <span>Community Spots</span></button>
+            <button onclick="app.switchView('history')" id="nav-history" class="nav-btn"><i class="fas fa-history w-6"></i> <span>Trip History</span></button>
+            <button onclick="app.switchView('analytics')" id="nav-analytics" class="nav-btn"><i class="fas fa-chart-pie w-6"></i> <span>Performance</span></button>
+            <button onclick="app.switchView('settings')" id="nav-settings" class="nav-btn"><i class="fas fa-cog w-6"></i> <span>Settings</span></button>
+        </nav>
+        <div class="p-4 border-t border-slate-100 dark:border-slate-700"><button onclick="app.logout()" class="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-bold text-sm rounded-xl hover:bg-red-50 hover:text-red-500 transition-colors"><i class="fas fa-power-off"></i> <span>End Shift</span></button></div>
+    </aside>
+
+    <div class="flex-1 flex flex-col h-full relative">
+        <header class="h-20 bg-white/80 dark:bg-darkcard/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-700 flex items-center justify-between px-6 md:px-8 z-10">
+            <div class="flex items-center gap-4">
+                <button class="md:hidden text-slate-500 dark:text-slate-400 p-2 -ml-2 rounded-lg" onclick="app.toggleSidebar()"><i class="fas fa-bars text-xl"></i></button>
+                <div>
+                    <h1 class="text-xl font-bold text-midnight dark:text-white"><span>Hello,</span> <span id="header-username" class="text-brand-600">Captain</span></h1>
+                    <div class="flex items-center gap-3 mt-1">
+                        <div class="relative inline-block w-12 mr-2 select-none"><input type="checkbox" id="online-toggle" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer hidden" onclick="app.toggleOnlineStatus()"/><label for="online-toggle" class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 cursor-pointer"></label></div>
+                        <span id="status-text" class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Offline</span>
+                    </div>
+                </div>
+            </div>
+            <div class="flex items-center gap-4 md:gap-6">
+                <div id="reliability-widget" class="flex flex-col items-end mr-6 border-r border-slate-200 dark:border-slate-700 pr-6">
+                    <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Reliability</div>
+                    <div class="flex items-center gap-1.5"><i id="rel-icon" class="fas fa-shield-alt text-emerald-500 text-sm"></i><span id="rel-score" class="font-bold text-midnight dark:text-white">100%</span></div>
+                </div>
+                <div class="hidden lg:flex flex-col text-right border-r border-slate-200 dark:border-slate-700 pr-6">
+                    <div id="clock-date" class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Loading...</div>
+                    <div id="clock-time" class="text-xl font-bold text-midnight dark:text-white font-mono leading-none">--:--:--</div>
+                </div>
+                <button onclick="app.toggleDarkMode()" class="w-10 h-10 rounded-full bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-yellow-400 flex items-center justify-center transition-colors hover:bg-slate-100"><i class="fas fa-moon dark:hidden"></i><i class="fas fa-sun hidden dark:block"></i></button>
+                <div class="w-10 h-10 rounded-full bg-brand-100 text-brand-600 flex items-center justify-center font-bold border-2 border-white dark:border-slate-600 shadow-sm" id="avatar">D</div>
+            </div>
+        </header>
+
+        <main class="flex-1 overflow-y-auto p-4 md:p-8 relative scroll-smooth bg-slate-50 dark:bg-darkbg">
+            
+            <div id="view-dashboard" class="fade-in space-y-6">
+                <div id="active-job-alert" class="hidden bg-emerald-600 rounded-xl p-4 text-white shadow-lg flex items-center justify-between animate-pulse cursor-pointer" onclick="app.maximizeModal()">
+                    <div class="flex items-center gap-3"><div class="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center"><i class="fas fa-clock"></i></div><div><h3 class="font-bold text-sm">Pickup in Progress</h3><p class="text-xs text-emerald-100">Tap to view details</p></div></div><i class="fas fa-chevron-up"></i>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div class="p-6 rounded-3xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-lg relative overflow-hidden group nature-pattern">
+                        <div class="absolute -right-6 -top-6 w-32 h-32 bg-white/10 rounded-full animate-float-slow"></div>
+                        <div class="absolute -left-6 -bottom-6 w-24 h-24 bg-white/10 rounded-full animate-float-medium"></div>
+                        <div class="flex justify-between items-start mb-4 relative z-10"><div class="p-2 bg-white/20 rounded-xl backdrop-blur-sm"><i class="fas fa-wallet text-xl"></i></div></div>
+                        <div class="relative z-10"><div class="text-3xl font-extrabold" id="dash-earnings">₹0</div><div class="text-xs text-emerald-100 font-bold uppercase tracking-wide mt-1">Total Earnings</div></div>
+                    </div>
+                    <div class="p-6 rounded-3xl bg-white dark:bg-darkcard border border-slate-100 dark:border-slate-700 shadow-sm relative overflow-hidden group">
+                        <div class="absolute right-0 top-0 w-24 h-24 bg-blue-500/5 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110"></div>
+                        <div class="flex justify-between items-start mb-4 relative z-10"><div class="p-2 bg-blue-50 dark:bg-blue-900/20 rounded-xl text-blue-600"><i class="fas fa-route text-xl"></i></div></div>
+                        <div class="relative z-10"><div class="text-3xl font-extrabold text-midnight dark:text-white" id="dash-trips">0</div><div class="text-xs text-slate-500 font-bold uppercase tracking-wide mt-1">Total Trips</div></div>
+                    </div>
+                    <div class="col-span-1 md:col-span-2 p-6 rounded-3xl bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-lg relative overflow-hidden cursor-pointer nature-pattern">
+                        <div class="absolute right-0 bottom-0 opacity-10 transform translate-x-4 translate-y-4"><i class="fas fa-trophy text-8xl"></i></div>
+                        <div class="flex items-center gap-5 relative z-10 h-full">
+                            <div id="dash-tier-icon" class="w-14 h-14 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center text-3xl shadow-inner">🌱</div>
+                            <div class="flex-1">
+                                <div class="flex justify-between items-center mb-1"><span class="font-bold text-xl" id="dash-tier-name">Eco Starter</span><span class="text-xs font-bold bg-white/20 px-3 py-1 rounded-full" id="dash-tier-level">Level 1</span></div>
+                                <div class="w-full bg-black/20 rounded-full h-3 mb-2 overflow-hidden backdrop-blur-sm"><div id="dash-tier-progress" class="bg-yellow-400 h-3 rounded-full transition-all duration-1000 shadow-[0_0_10px_rgba(250,204,21,0.5)]" style="width: 10%"></div></div>
+                                <p class="text-[10px] text-indigo-100 font-medium" id="dash-next-milestone">Keep collecting to level up!</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 h-full">
+                    <div class="lg:col-span-1 space-y-6">
+                        <div class="bg-white dark:bg-darkcard p-6 rounded-3xl border border-slate-100 dark:border-slate-700 shadow-sm relative overflow-hidden">
+                             <div class="absolute top-0 right-0 w-20 h-20 bg-emerald-500/5 rounded-bl-full"></div>
+                            <h3 class="font-bold text-midnight dark:text-white mb-6 flex items-center gap-2 text-sm uppercase tracking-wide"><i class="fas fa-bullseye text-emerald-500"></i> Daily Goal</h3>
+                            <div class="relative w-48 h-48 mx-auto">
+                                <canvas id="miniGoalChart"></canvas>
+                                <div class="absolute inset-0 flex items-center justify-center flex-col pointer-events-none"><span class="text-3xl font-extrabold text-midnight dark:text-white" id="goal-percent">0%</span><span class="text-[10px] text-slate-400 font-bold uppercase">Achieved</span></div>
+                            </div>
+                            <div class="text-center mt-6">
+                                <div class="text-sm text-slate-400 font-medium mb-1">Today's Earnings</div>
+                                <div class="text-2xl font-bold text-emerald-600 dark:text-emerald-400"><span id="goal-today-amt">₹0</span> <span class="text-slate-300 text-lg">/ ₹2000</span></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="lg:col-span-2">
+                        <div class="bg-white dark:bg-darkcard rounded-3xl border border-slate-100 dark:border-slate-700 shadow-sm h-full flex flex-col overflow-hidden">
+                            <div class="p-5 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center bg-slate-50/50 dark:bg-slate-800/50">
+                                <h3 class="font-bold text-midnight dark:text-white">Live Requests Feed</h3>
+                                <div class="flex items-center gap-2"><span class="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span><span class="text-xs text-slate-500 font-medium">Scanning area...</span></div>
+                            </div>
+                            <div id="dashboard-feed" class="p-4 space-y-3 flex-1 overflow-y-auto custom-scrollbar max-h-[600px]">
+                                <div class="text-center py-12 text-slate-400 text-sm">Waiting for new requests...</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="view-requests" class="hidden fade-in">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-xl font-bold text-midnight dark:text-white">Available Pickups</h2>
+                    <button onclick="app.refreshRequests()" class="text-sm text-brand-600 font-bold hover:underline"><i class="fas fa-sync-alt"></i> <span>Refresh</span></button>
+                </div>
+                <div id="requests-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+                <div id="no-requests-msg" class="hidden flex-col items-center justify-center py-12 text-center bg-white dark:bg-darkcard rounded-3xl border border-slate-100 dark:border-slate-700 p-8 shadow-sm">
+                    <div class="relative mb-6"><i class="fas fa-leaf text-6xl text-emerald-200 animate-bounce"></i></div>
+                    <h3 class="text-2xl font-bold text-midnight dark:text-white mb-2">All Caught Up!</h3>
+                    <p class="text-slate-500 dark:text-slate-400 max-w-sm mx-auto mb-8">We are scanning for nearby waste pickups.</p>
+                </div>
+            </div>
+
+            <div id="view-dumps" class="hidden fade-in">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-xl font-bold text-midnight dark:text-white">Community Dump Reports</h2>
+                    <div class="text-xs bg-red-100 text-red-600 px-3 py-1 rounded-full font-bold">Priority Zones</div>
+                </div>
+                <div id="dumps-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    </div>
+                <div id="dumps-empty" class="hidden text-center py-16 text-slate-400 bg-white dark:bg-darkcard rounded-3xl border border-dashed border-slate-200 dark:border-slate-700">
+                    <i class="fas fa-map-signs text-4xl mb-3 opacity-50"></i>
+                    <p>No dump spots reported currently.</p>
+                </div>
+            </div>
+
+            <div id="view-history" class="hidden fade-in">
+                <div class="bg-white dark:bg-darkcard rounded-2xl shadow-sm overflow-hidden border border-slate-100 dark:border-slate-700">
+                    <div class="p-6 border-b border-slate-100 dark:border-slate-700 flex flex-col md:flex-row justify-between items-center gap-4">
+                        <div><h2 class="font-bold text-midnight dark:text-white">Trip History</h2></div>
+                        <div class="flex gap-2">
+                            <input type="date" id="filter-date" onchange="app.filterHistory()" class="px-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg outline-none text-slate-600 dark:text-slate-300">
+                            <select id="filter-type" onchange="app.filterHistory()" class="px-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg outline-none text-slate-600 dark:text-slate-300"><option value="all">All Status</option><option value="completed">Completed</option><option value="cancelled">Cancelled</option></select>
+                        </div>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-sm">
+                            <thead class="bg-slate-50 dark:bg-slate-800 text-slate-500 uppercase text-[10px] tracking-wider font-bold">
+                                <tr><th class="p-4">Date</th><th class="p-4">Waste Type</th><th class="p-4">Status</th><th class="p-4 text-right">Payout</th></tr>
+                            </thead>
+                            <tbody id="history-table-body" class="divide-y divide-slate-100 dark:divide-slate-700 dark:text-slate-300"></tbody>
+                        </table>
+                    </div>
+                    <div id="history-empty" class="hidden text-center py-12 text-slate-400"><p>No trips found.</p></div>
+                </div>
+            </div>
+
+            <div id="view-analytics" class="hidden fade-in">
+                <div class="bg-gradient-to-r from-emerald-600 to-teal-800 rounded-3xl p-8 text-white shadow-lg mb-8 relative overflow-hidden nature-pattern">
+                    <div class="absolute right-0 top-0 opacity-20 transform translate-x-4 -translate-y-4"><i class="fas fa-chart-line text-9xl"></i></div>
+                    <div class="relative z-10"><div class="text-xs font-bold uppercase tracking-widest text-emerald-200 mb-2">Driver Insights</div><div class="flex items-center gap-4 mb-4"><div id="perf-badge-icon" class="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center text-3xl backdrop-blur-sm border border-white/30">🚀</div><div><h2 id="perf-tagline" class="text-3xl font-extrabold">Eco Starter</h2><div class="text-emerald-100 text-sm">Level <span id="perf-level">1</span> Captain</div></div></div></div>
+                </div>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                    <div class="bg-white dark:bg-darkcard p-4 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm text-center"><div class="text-[10px] uppercase font-bold text-slate-400 mb-1">Avg. Order Value</div><div class="text-xl font-bold text-emerald-600" id="stat-aov">₹0</div></div>
+                    <div class="bg-white dark:bg-darkcard p-4 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm text-center"><div class="text-[10px] uppercase font-bold text-slate-400 mb-1">Top Category</div><div class="text-xl font-bold text-emerald-600" id="stat-top-cat">-</div></div>
+                    <div class="bg-white dark:bg-darkcard p-4 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm text-center"><div class="text-[10px] uppercase font-bold text-slate-400 mb-1">Total Weight</div><div class="text-xl font-bold text-orange-500" id="stat-weight">0kg</div></div>
+                    <div class="bg-white dark:bg-darkcard p-4 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm text-center"><div class="text-[10px] uppercase font-bold text-slate-400 mb-1">Reliability Rate</div><div class="text-xl font-bold text-blue-500" id="stat-completion-rate">100%</div></div>
+                </div>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div class="bg-white dark:bg-darkcard p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 h-80"><h3 class="font-bold text-slate-700 dark:text-white mb-4">Earnings Overview</h3><div class="relative h-64 w-full"><canvas id="earningsChart"></canvas></div></div>
+                    <div class="bg-white dark:bg-darkcard p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 h-80"><h3 class="font-bold text-slate-700 dark:text-white mb-4">Waste Collection Mix</h3><div class="relative h-64 w-full flex justify-center"><canvas id="wasteChart"></canvas></div></div>
+                </div>
+            </div>
+
+            <div id="view-settings" class="hidden fade-in">
+                <div class="max-w-3xl mx-auto bg-white dark:bg-darkcard p-8 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm">
+                    <h2 class="text-xl font-bold text-midnight dark:text-white mb-6">Driver Profile & Vehicle</h2>
+                    <form onsubmit="app.saveProfile(event)" class="space-y-6">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div><label class="block text-xs font-bold text-slate-500 uppercase mb-2">Full Name</label><input type="text" id="prof-name" class="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-600 bg-transparent text-sm dark:text-white"></div>
+                            <div><label class="block text-xs font-bold text-slate-500 uppercase mb-2">Phone</label><input type="text" id="prof-phone" class="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-600 bg-transparent text-sm dark:text-white"></div>
+                            <div class="md:col-span-2"><label class="block text-xs font-bold text-slate-500 uppercase mb-2">Email (Read Only)</label><input type="email" id="prof-email" disabled class="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 dark:bg-slate-800 dark:border-slate-700 text-slate-400 text-sm"></div>
+                        </div>
+                        <div class="pt-6 border-t border-slate-100 dark:border-slate-700">
+                            <h3 class="text-sm font-bold text-emerald-600 uppercase mb-4">Vehicle Details</h3>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div><label class="block text-xs font-bold text-slate-500 uppercase mb-2">Vehicle Type</label><select id="veh-type" class="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-600 bg-transparent text-sm dark:text-white"><option>Mini Truck (Tata Ace)</option><option>E-Rickshaw</option><option>Pickup Van</option><option>Heavy Truck</option></select></div>
+                                <div><label class="block text-xs font-bold text-slate-500 uppercase mb-2">Plate Number</label><input type="text" id="veh-plate" class="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-600 bg-transparent text-sm font-mono uppercase dark:text-white"></div>
+                            </div>
+                        </div>
+                        <div class="text-right pt-4"><button type="submit" class="bg-emerald-600 hover:bg-emerald-700 text-white px-8 py-3 rounded-xl font-bold text-sm shadow-lg transition-all">Save Changes</button></div>
+                    </form>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <div id="toast" class="fixed bottom-5 right-5 bg-midnight text-white px-6 py-3 rounded-lg shadow-xl transform translate-y-20 opacity-0 transition-all duration-300 z-50 flex items-center gap-3"><i class="fas fa-check-circle text-emerald-400"></i><span id="toast-msg">Success</span></div>
+    <audio id="audio-success" src="https://assets.mixkit.co/active_storage/sfx/2013/2013-preview.mp3" preload="auto"></audio>
+
+    <script type="module">
+        import { auth, db } from './firebase-config.js';
+        import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { collection, query, where, onSnapshot, doc, updateDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        window.app = {};
+        let currentUser = null;
+        let ignoredRequests = JSON.parse(localStorage.getItem('ignored_ids') || '[]');
+        let isDriverOnline = localStorage.getItem('driver_online_status') === 'false' ? false : true;
+        let currentRawData = [];
+        let allHistoryData = []; 
+        let currentActiveJob = null;
+        let miniGoalChart = null; 
+
+        document.addEventListener('DOMContentLoaded', () => {
+            if (localStorage.getItem('eco_theme') === 'dark') document.documentElement.classList.add('dark');
+            setupClock();
+            app.updateToggleVisuals();
+            initMiniGoalChart(0);
+            initDumpSpotsListener(); // Initialize the new dump spot listener
+        });
+
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                currentUser = user;
+                loadProfile(user.uid);
+                initRequestsListener();
+                initActiveJobListener(user.uid);
+                initHistoryListener(user.uid);
+            } else {
+                window.location.href = 'auth.html';
+            }
+        });
+
+        // --- NAVIGATION & UI HELPERS ---
+        app.switchView = (id) => { 
+            ['dashboard','requests','dumps','history','analytics','settings'].forEach(v => { 
+                document.getElementById('view-'+v).classList.add('hidden'); 
+                document.getElementById('nav-'+v).classList.remove('active'); 
+            }); 
+            document.getElementById('view-'+id).classList.remove('hidden'); 
+            document.getElementById('nav-'+id).classList.add('active'); 
+            if(window.innerWidth < 768) app.toggleSidebar(); 
+        };
+        app.toggleSidebar = () => { document.getElementById('sidebar').classList.toggle('-translate-x-full'); document.getElementById('sidebar-overlay').classList.toggle('open'); };
+        app.toggleDarkMode = () => document.documentElement.classList.toggle('dark');
+        app.logout = () => { if(confirm("End current shift?")) signOut(auth).then(()=>window.location.href='index.html'); };
+        function showToast(msg, type='success') {
+            const t = document.getElementById('toast'); document.getElementById('toast-msg').innerText = msg;
+            t.className = `fixed bottom-5 right-5 px-6 py-3 rounded-lg shadow-xl transform transition-all duration-300 z-50 flex items-center gap-3 ${type === 'error' ? 'bg-red-500 text-white' : 'bg-midnight dark:bg-white dark:text-midnight text-white'}`;
+            t.classList.remove('translate-y-20', 'opacity-0'); setTimeout(()=>t.classList.add('translate-y-20', 'opacity-0'), 3000);
+        }
+
+        // --- NEW: Mark Dump as Cleaned Logic ---
+        app.markDumpCleaned = async (reportId) => {
+            if(!confirm("Are you sure this spot is fully cleaned?")) return;
+            
+            const btn = document.getElementById(`btn-clean-${reportId}`);
+            const originalContent = btn ? btn.innerHTML : '';
+            if(btn) { 
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Updating...'; 
+                btn.disabled = true; 
+            }
+
+            try {
+                // Update Firestore: Change status to 'Cleaned'
+                await updateDoc(doc(db, "reports", reportId), { 
+                    status: "Cleaned", 
+                    cleanedAt: new Date(),
+                    cleanedBy: currentUser.uid 
+                });
+                
+                showToast("Great work! Spot marked as cleaned.");
+                fireConfetti(); // Celebration effect
+                
+            } catch (error) {
+                console.error("Error updating report:", error);
+                showToast("Failed to update status", "error");
+                if(btn) { 
+                    btn.innerHTML = originalContent; 
+                    btn.disabled = false; 
+                }
+            }
+        };
+
+        // --- NEW: DUMP SPOTS LOGIC (With Text-Only UI & Mark Cleaned Button) ---
+        function initDumpSpotsListener() {
+            // Only show reports that are still 'Reported'
+            const q = query(collection(db, "reports"), where("status", "==", "Reported"));
+            
+            onSnapshot(q, (snap) => {
+                const grid = document.getElementById('dumps-grid');
+                const empty = document.getElementById('dumps-empty');
+                
+                if(snap.empty) { 
+                    grid.innerHTML = ''; 
+                    empty.classList.remove('hidden'); 
+                    return; 
+                }
+                
+                empty.classList.add('hidden');
+                grid.innerHTML = '';
+                
+                snap.forEach((d, index) => {
+                    const data = d.data();
+                    const reportId = d.id; 
+                    
+                    const card = document.createElement('div');
+                    card.className = "bg-white dark:bg-darkcard rounded-2xl overflow-hidden shadow-md border border-slate-100 dark:border-slate-700 flex flex-col hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 fade-in group";
+                    card.style.animationDelay = `${index * 100}ms`;
+
+                    // 1. Waste Type Visuals
+                    let typeIcon = 'fa-trash-alt';
+                    let typeBg = 'bg-slate-50 dark:bg-slate-800';
+                    let typeColor = 'text-slate-500';
+
+                    const wType = (data.wasteType || 'General').toLowerCase();
+                    if(wType.includes('plastic')) { typeIcon = 'fa-bottle-water'; typeBg = 'bg-blue-50 dark:bg-blue-900/20'; typeColor = 'text-blue-600'; }
+                    else if(wType.includes('construction')) { typeIcon = 'fa-trowel-bricks'; typeBg = 'bg-orange-50 dark:bg-orange-900/20'; typeColor = 'text-orange-600'; }
+                    else if(wType.includes('medical')) { typeIcon = 'fa-biohazard'; typeBg = 'bg-red-50 dark:bg-red-900/20'; typeColor = 'text-red-600'; }
+                    else if(wType.includes('overflow')) { typeIcon = 'fa-dumpster'; typeBg = 'bg-yellow-50 dark:bg-yellow-900/20'; typeColor = 'text-yellow-600'; }
+
+                    // 2. Size Badge
+                    const size = data.estimatedSize || 'Small';
+                    let sizeBadgeClass = 'bg-slate-100 text-slate-500 border-slate-200 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-300';
+                    if(size === 'Large') sizeBadgeClass = 'bg-red-50 text-red-600 border-red-100 dark:bg-red-900/20 dark:border-red-800 dark:text-red-400 animate-pulse';
+
+                    const sizeBadge = `<span class="px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase border ${sizeBadgeClass} shadow-sm">${size}</span>`;
+
+                    // 3. Location & Date
+                    const locationStr = data.area || 'Unknown Location';
+                    const dateObj = data.timestamp ? (data.timestamp.toDate ? data.timestamp.toDate() : new Date(data.timestamp)) : new Date();
+                    const dateStr = dateObj.toLocaleDateString('en-IN', { month: 'short', day: 'numeric' });
+
+                    card.innerHTML = `
+                        <div class="p-5 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center ${typeBg}">
+                            <div class="flex items-center gap-3">
+                                <div class="w-12 h-12 rounded-xl bg-white dark:bg-slate-800 flex items-center justify-center text-xl shadow-sm border border-slate-100 dark:border-slate-700 ${typeColor}">
+                                    <i class="fas ${typeIcon}"></i>
+                                </div>
+                                <div>
+                                    <div class="text-[10px] font-bold opacity-60 uppercase tracking-wider text-midnight dark:text-white">Reported Spot</div>
+                                    <h4 class="font-bold text-midnight dark:text-white text-base">${data.wasteType || 'General Dump'}</h4>
+                                </div>
+                            </div>
+                            ${sizeBadge}
+                        </div>
+
+                        <div class="p-5 flex-1 flex flex-col">
+                            <div class="mb-4">
+                                <div class="text-xs font-bold text-slate-400 uppercase mb-1">Location</div>
+                                <div class="font-medium text-slate-700 dark:text-slate-200 text-sm flex items-start gap-2">
+                                     <i class="fas fa-map-marker-alt text-red-500 mt-0.5"></i> ${locationStr}
+                                </div>
+                            </div>
+
+                            <div class="mb-4 bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-100 dark:border-slate-700 relative">
+                                <i class="fas fa-quote-left text-slate-300 absolute top-2 left-2 text-xs"></i>
+                                <p class="text-sm text-slate-600 dark:text-slate-300 pl-4 italic leading-relaxed line-clamp-3">
+                                    "${data.description || 'No description provided.'}"
+                                </p>
+                            </div>
+
+                            <div class="mt-auto grid grid-cols-2 gap-3">
+                                <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(locationStr)}" target="_blank" class="py-3 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 font-bold text-sm rounded-xl hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors flex items-center justify-center gap-2">
+                                    <i class="fas fa-location-arrow"></i> Navigate
+                                </a>
+                                <button id="btn-clean-${reportId}" onclick="app.markDumpCleaned('${reportId}')" class="py-3 bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-sm rounded-xl transition-all shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2">
+                                    <i class="fas fa-check"></i> Cleaned
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                    grid.appendChild(card);
+                });
+            });
+        }
+
+        // --- CHARTS & CORE ---
+        function initMiniGoalChart(percentage) {
+            const ctx = document.getElementById('miniGoalChart');
+            if(!ctx) return;
+            if(miniGoalChart) miniGoalChart.destroy();
+            const remaining = 100 - percentage;
+            const color = percentage >= 100 ? '#10b981' : '#059669'; 
+            miniGoalChart = new Chart(ctx, { 
+                type: 'doughnut', 
+                data: { labels: ['Achieved', 'Remaining'], datasets: [{ data: [percentage, remaining < 0 ? 0 : remaining], backgroundColor: [color, '#e2e8f0'], borderWidth: 0, borderRadius: 10 }] }, 
+                options: { cutout: '85%', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { enabled: false } }, animation: { animateScale: true } } 
+            });
+        }
+
+        // --- ACTIVE JOB LOGIC ---
+        app.switchToPickupPhase = () => { document.getElementById('travel-phase').classList.add('hidden'); document.getElementById('pickup-phase').classList.remove('hidden'); setTimeout(() => document.querySelector('.otp-box').focus(), 100); };
+        app.backToTravel = () => { document.getElementById('travel-phase').classList.remove('hidden'); document.getElementById('pickup-phase').classList.add('hidden'); };
+        function renderActiveJobData(job) {
+            document.getElementById('modal-type').innerText = job.type + " Pickup";
+            document.getElementById('modal-resident').innerText = job.userName || "Valued Resident"; 
+            document.getElementById('modal-address').innerText = job.address;
+            document.getElementById('modal-price').innerText = '₹' + job.price;
+            document.getElementById('modal-maps-btn').href = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(job.address)}`;
+            app.backToTravel();
+            document.querySelectorAll('.status-btn').forEach(b => { b.classList.remove('sent', 'sending'); b.disabled = false; });
+        }
+
+        // --- HISTORY LOGIC ---
+        app.getWasteStyle = (type) => {
+            const t = type ? type.toLowerCase() : 'waste';
+            if(t.includes('plastic')) return { icon: 'fa-bottle-water', bg: 'bg-blue-100', text: 'text-blue-600', border: 'border-blue-200' };
+            if(t.includes('metal') || t.includes('iron')) return { icon: 'fa-hammer', bg: 'bg-gray-100', text: 'text-gray-600', border: 'border-gray-200' };
+            if(t.includes('paper')) return { icon: 'fa-newspaper', bg: 'bg-yellow-100', text: 'text-yellow-600', border: 'border-yellow-200' };
+            if(t.includes('e-waste')) return { icon: 'fa-plug', bg: 'bg-purple-100', text: 'text-purple-600', border: 'border-purple-200' };
+            return { icon: 'fa-leaf', bg: 'bg-emerald-100', text: 'text-emerald-600', border: 'border-emerald-200' };
+        };
+
+        app.filterHistory = () => {
+            const dateVal = document.getElementById('filter-date').value;
+            const typeVal = document.getElementById('filter-type').value;
+            let filtered = [...allHistoryData];
+            if(dateVal) filtered = filtered.filter(d => d.jsDate.toISOString().split('T')[0] === dateVal);
+            if(typeVal !== 'all') {
+                if (typeVal === 'completed') filtered = filtered.filter(d => d.status === 'Completed');
+                else if (typeVal === 'cancelled') filtered = filtered.filter(d => d.status !== 'Completed' && d.status !== 'Assigned' && d.status !== 'Pending');
+            }
+            renderHistoryTable(filtered.slice(0, 50));
+        };
+
+        function renderHistoryTable(data) {
+            const tbody = document.getElementById('history-table-body');
+            if(!data || data.length === 0) { tbody.innerHTML = ''; document.getElementById('history-empty').classList.remove('hidden'); return; }
+            document.getElementById('history-empty').classList.add('hidden');
+            tbody.innerHTML = data.map(d => {
+                const style = app.getWasteStyle(d.type);
+                const dateStr = d.jsDate.toLocaleDateString('en-IN');
+                const timeStr = d.jsDate.toLocaleTimeString('en-IN', {hour: '2-digit', minute:'2-digit'});
+                const isCancelled = d.status !== 'Completed';
+                const residentName = d.userName || "Valued Resident";
+                const statusLabel = d.status === 'Completed' ? 'COMPLETED' : (d.status.toUpperCase() || 'CANCELLED');
+                const statusColor = isCancelled ? 'bg-red-100 text-red-600' : 'bg-emerald-100 text-emerald-600';
+                return `<tr class="group hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all border-b border-slate-50 dark:border-slate-800"><td class="p-4 align-middle"><div class="text-xs font-bold text-slate-400 mb-1">${dateStr}</div><div class="text-[10px] text-slate-300">${timeStr}</div></td><td class="p-4 align-middle"><div class="flex items-center gap-3"><div class="w-10 h-10 rounded-full ${style.bg} ${style.text} flex items-center justify-center border ${style.border}"><i class="fas ${style.icon}"></i></div><div><div class="font-bold text-slate-700 dark:text-slate-200 text-sm">${d.type}</div><div class="text-[10px] text-slate-500 dark:text-slate-400"><i class="fas fa-user-circle"></i> ${residentName}</div></div></div></td><td class="p-4 align-middle"><span class="px-2 py-1 ${statusColor} text-[10px] rounded-lg font-bold">${statusLabel}</span></td><td class="p-4 align-middle text-right"><div class="inline-block px-3 py-1 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 font-bold rounded-lg border border-emerald-100 dark:border-emerald-800 text-sm">₹${d.price}</div></td></tr>`;
+            }).join('');
+        }
+
+        // --- UPDATED PERFORMANCE LOGIC ---
+        function updatePerformanceInsights(tripsCount, totalEarnings, reliabilityScore) {
+            if(document.getElementById('dash-earnings')) document.getElementById('dash-earnings').innerText = '₹' + totalEarnings;
+            if(document.getElementById('dash-trips')) document.getElementById('dash-trips').innerText = tripsCount;
+            if(document.getElementById('rel-score')) document.getElementById('rel-score').innerText = reliabilityScore + "%";
+            if(document.getElementById('stat-completion-rate')) document.getElementById('stat-completion-rate').innerText = reliabilityScore + "%";
+
+            let tagline = "Eco Starter"; let icon = "🌱"; let level = 1; let progress = 10;
+            if (tripsCount > 10) { tagline = "Green Mover"; icon = "🚀"; level = 2; progress = 40; }
+            if (tripsCount > 50) { tagline = "Sustainability Pro"; icon = "💎"; level = 3; progress = 75; }
+            if (tripsCount > 100) { tagline = "Planet Hero"; icon = "👑"; level = 4; progress = 100; }
+            
+            const elTag = document.getElementById('perf-tagline');
+            if(elTag) { 
+                elTag.innerText = tagline; document.getElementById('perf-badge-icon').innerText = icon; document.getElementById('perf-level').innerText = level;
+                document.getElementById('dash-tier-name').innerText = tagline; document.getElementById('dash-tier-level').innerText = "Level " + level;
+                document.getElementById('dash-tier-icon').innerText = icon; document.getElementById('dash-tier-progress').style.width = progress + "%";
+            }
+        }
+
+        function calculateAdvancedStats(data) {
+            if(!data || data.length === 0) return;
+            const completedTrips = data.filter(d => d.status === 'Completed');
+            if(completedTrips.length === 0) return;
+            const totalEarnings = completedTrips.reduce((sum, d) => sum + d.price, 0);
+            const aov = Math.round(totalEarnings / completedTrips.length);
+            const counts = {}; let totalWeight = 0;
+            completedTrips.forEach(d => { counts[d.type] = (counts[d.type] || 0) + 1; totalWeight += (parseInt(d.weight) || 0); });
+            const topCat = Object.keys(counts).length > 0 ? Object.keys(counts).reduce((a, b) => counts[a] > counts[b] ? a : b) : "-";
+            document.getElementById('stat-aov').innerText = '₹' + aov; document.getElementById('stat-top-cat').innerText = topCat; document.getElementById('stat-weight').innerText = totalWeight + 'kg';
+        }
+
+        function initHistoryListener(uid) {
+            const q = query(collection(db, "pickups"), where("driverId", "==", uid));
+            onSnapshot(q, (snap) => {
+                let totalEarnings = 0; let tripsCount = 0; let todayEarnings = 0; let driverCancellations = 0;
+                const historyData = []; const typeCounts = {}; const todayStr = new Date().toISOString().split('T')[0];
+
+                snap.forEach(d => {
+                    const data = d.data();
+                    let price = Number(data.price);
+                    if(isNaN(price) || price === 0) { const w = parseInt(data.weight) || 0; price = w * 5; }
+                    let tripDate = new Date(); 
+                    if (data.completedAt) tripDate = typeof data.completedAt.toDate === 'function' ? data.completedAt.toDate() : new Date(data.completedAt);
+                    else if (data.createdAt) tripDate = typeof data.createdAt.toDate === 'function' ? data.createdAt.toDate() : new Date(data.createdAt);
+                    const tripDateStr = tripDate.toISOString().split('T')[0];
+
+                    if(data.status === 'Completed') { 
+                        totalEarnings += price; tripsCount++; typeCounts[data.type] = (typeCounts[data.type] || 0) + 1; 
+                        historyData.push({...data, price: price, jsDate: tripDate});
+                        if(tripDateStr === todayStr) todayEarnings += price;
+                    } 
+                    else if (data.status === 'Cancelled' && data.cancelledBy === 'Driver') {
+                        driverCancellations++; historyData.push({...data, price: 0, jsDate: tripDate, status: data.status});
+                    }
+                    else if (data.status !== 'Assigned' && data.status !== 'Pending') { 
+                        historyData.push({...data, price: 0, jsDate: tripDate, status: data.status}); 
+                    }
+                });
+                historyData.sort((a,b) => b.jsDate - a.jsDate); allHistoryData = historyData; 
+                const totalAssignedToDriver = tripsCount + driverCancellations;
+                let reliabilityScore = 100; if (totalAssignedToDriver > 0) reliabilityScore = Math.round((tripsCount / totalAssignedToDriver) * 100);
+                const dailyGoal = 2000; const dailyPercent = Math.min(Math.round((todayEarnings / dailyGoal) * 100), 100);
+                document.getElementById('goal-today-amt').innerText = '₹' + todayEarnings; document.getElementById('goal-percent').innerText = dailyPercent + '%';
+                initMiniGoalChart(dailyPercent); updatePerformanceInsights(tripsCount, totalEarnings, reliabilityScore); calculateAdvancedStats(historyData); app.filterHistory(); renderCharts(historyData, typeCounts);
+            });
+        }
+
+        // --- CORE UTILS ---
+        function setupClock() { setInterval(() => { const now = new Date(); document.getElementById('clock-date').innerText = now.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'short' }); document.getElementById('clock-time').innerText = now.toLocaleTimeString('en-IN', { hour12: false }); }, 1000); }
+        app.updateToggleVisuals = () => { const checkbox = document.getElementById('online-toggle'); const text = document.getElementById('status-text'); checkbox.checked = isDriverOnline; if(isDriverOnline) { text.innerText = 'Online'; text.classList.remove('text-slate-500'); text.classList.add('text-emerald-600'); } else { text.innerText = 'Offline'; text.classList.remove('text-emerald-600'); text.classList.add('text-slate-500'); } };
+        app.toggleOnlineStatus = () => { if (currentActiveJob) { alert("🚫 Pending order!"); document.getElementById('online-toggle').checked = true; return; } isDriverOnline = !isDriverOnline; localStorage.setItem('driver_online_status', isDriverOnline); app.updateToggleVisuals(); processAndRender(currentRawData); };
+        
+        // --- OTP VERIFICATION ---
+        app.focusNext = (el) => { if (el.value.length >= 1 && el.nextElementSibling) el.nextElementSibling.focus(); };
+        app.focusPrev = (e, el) => { if (e.key === "Backspace" && el.value.length === 0 && el.previousElementSibling) el.previousElementSibling.focus(); };
+        
+        app.verifyOtp = async (e) => {
+            e.preventDefault();
+            const inputs = document.querySelectorAll('.otp-box');
+            let enteredOtp = ''; inputs.forEach(i => enteredOtp += i.value);
+            if (!currentActiveJob) return;
+            if (enteredOtp.length !== 4 || parseInt(enteredOtp) !== parseInt(currentActiveJob.otp)) {
+                document.getElementById('otp-error').classList.remove('hidden');
+                setTimeout(() => { document.getElementById('otp-error').classList.add('hidden'); inputs.forEach(i => i.value = ''); inputs[0].focus(); }, 1000);
+                return;
+            }
+            document.getElementById('modal-content-wrapper').classList.add('hidden'); 
+            document.getElementById('modal-success-view').classList.remove('hidden'); 
+            document.getElementById('modal-success-view').classList.add('flex'); 
+            document.getElementById('success-amount').innerText = '₹' + currentActiveJob.price; 
+            
+            fireConfetti();
+            const audio = document.getElementById('audio-success');
+            if(audio) audio.play().catch(e => console.log("Audio play blocked", e));
+
+            setTimeout(async () => { 
+                try { await updateDoc(doc(db, "pickups", currentActiveJob.id), { status: "Completed", completedAt: new Date() }); showToast("Trip Completed!"); } catch(e) { console.error(e); } 
+                document.getElementById('modal-content-wrapper').classList.remove('hidden'); 
+                document.getElementById('modal-success-view').classList.add('hidden'); 
+                document.getElementById('modal-success-view').classList.remove('flex'); 
+                app.minimizeModal();
+            }, 2500);
+        };
+
+        // --- UI ACTIONS ---
+        app.showReportView = () => { document.getElementById('modal-content-wrapper').classList.add('hidden'); document.getElementById('modal-report-view').classList.remove('hidden'); };
+        app.closeReportView = () => { document.getElementById('modal-report-view').classList.add('hidden'); document.getElementById('modal-content-wrapper').classList.remove('hidden'); };
+        
+        // --- FIXED CANCELLATION LOGIC ---
+        app.submitReport = async () => {
+            if(!currentActiveJob) return;
+            const rInputs = document.querySelectorAll('input[name="reportReason"]');
+            let reason = null; rInputs.forEach(i => { if(i.checked) reason = i.value; });
+            const comment = document.getElementById('report-comment').value;
+
+            if(!reason) { alert("Select a reason."); return; }
+            if(confirm(`Cancel job due to: ${reason}?`)) {
+                try {
+                    await updateDoc(doc(db, "pickups", currentActiveJob.id), { 
+                        status: "Cancelled", cancellationReason: reason, cancellationComment: comment, 
+                        cancelledBy: "Driver", completedAt: new Date() 
+                    });
+                    app.minimizeModal(); 
+                    showToast("Job Cancelled", "error");
+                    // Force UI Reset
+                    document.getElementById('active-job-modal').classList.remove('open'); 
+                    document.getElementById('active-job-modal').classList.add('closed'); 
+                    document.getElementById('active-job-alert').classList.add('hidden');
+                    currentActiveJob = null;
+                    app.closeReportView();
+                } catch(e) { console.error(e); showToast("Error cancelling", "error"); }
+            }
+        };
+
+        // --- REQUEST HANDLING ---
+        function processAndRender(rawData) { let visibleReqs = rawData.filter(r => !ignoredRequests.includes(r.id)); visibleReqs.sort((a,b) => b.createdAt - a.createdAt); updateRequestsUI(visibleReqs); }
+        function updateRequestsUI(reqs) {
+            const container = document.getElementById('requests-grid'); const feed = document.getElementById('dashboard-feed'); const badge = document.getElementById('nav-badge'); const noMsg = document.getElementById('no-requests-msg');
+            if(!isDriverOnline) { container.innerHTML = ''; feed.innerHTML = `<div class="text-center py-8 text-slate-400 text-sm">Offline</div>`; noMsg.classList.remove('hidden'); noMsg.classList.add('flex'); badge.classList.add('hidden'); return; }
+            badge.innerText = reqs.length; badge.classList.toggle('hidden', reqs.length === 0);
+            
+            if(reqs.length === 0) { 
+                container.innerHTML = ''; 
+                feed.innerHTML = `<div class="text-center py-12 text-slate-400 text-sm">Searching for nearby pickups...</div>`; 
+                noMsg.classList.remove('hidden'); noMsg.classList.add('flex');
+                return; 
+            }
+            noMsg.classList.add('hidden'); noMsg.classList.remove('flex'); 
+            container.innerHTML = reqs.map(r => createRequestCard(r, false)).join(''); 
+            feed.innerHTML = reqs.slice(0, 3).map(r => createRequestCard(r, true)).join('');
+        }
+        function createRequestCard(r, isMini) {
+            const weightVal = parseInt(r.weight) || 0; const estPrice = r.price ? r.price : (weightVal * 5); const safeAddress = r.address ? r.address.replace(/'/g, "\\'") : "..."; 
+            const userName = r.userName || "Valued Resident";
+            if(isMini) return `<div class="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700 fade-in"><div class="flex items-center gap-3"><div class="w-10 h-10 rounded-full bg-white dark:bg-slate-700 flex items-center justify-center text-emerald-600"><i class="fas fa-box"></i></div><div><div class="text-sm font-bold dark:text-white">${r.type}</div><div class="text-xs text-slate-500">₹${estPrice} • ${userName}</div></div></div><button onclick="app.switchView('requests')" class="px-3 py-1 text-xs bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg">View</button></div>`;
+            return `<div class="bg-white dark:bg-darkcard p-5 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 flex flex-col justify-between fade-in" id="card-${r.id}"><div class="flex justify-between items-start mb-4"><div><span class="inline-block px-2 py-1 bg-emerald-50 text-emerald-600 text-xs font-bold rounded mb-2 uppercase">${r.type}</span><h3 class="text-lg font-bold text-midnight dark:text-white">${r.weight} Load</h3><p class="text-sm font-bold text-slate-600 dark:text-slate-300 mt-1"><i class="fas fa-user-circle"></i> ${userName}</p><p class="text-sm text-slate-500 mt-1"><i class="fas fa-map-marker-alt text-red-400 mr-1"></i> ${r.address}</p></div><div class="text-right"><div class="text-2xl font-bold text-emerald-600">₹${estPrice}</div><div class="text-xs text-slate-400 uppercase font-bold">Est. Earn</div></div></div><div class="grid grid-cols-2 gap-3 mt-auto" id="actions-${r.id}"><button onclick="app.ignoreRequest('${r.id}')" class="py-2.5 rounded-xl border border-slate-200 dark:border-slate-600 font-bold text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">Ignore</button><button onclick="app.acceptRequest('${r.id}', ${estPrice}, '${safeAddress}')" class="py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold shadow-lg shadow-emerald-200 dark:shadow-none transition-all transform active:scale-95">Accept Job</button></div></div>`;
+        }
+        function initRequestsListener() { const q = query(collection(db, "pickups"), where("status", "==", "Pending")); onSnapshot(q, (snap) => { const reqs = []; snap.forEach(d => reqs.push({id: d.id, ...d.data()})); currentRawData = reqs; processAndRender(currentRawData); }); }
+        app.ignoreRequest = (id) => { ignoredRequests.push(id); localStorage.setItem('ignored_ids', JSON.stringify(ignoredRequests)); processAndRender(currentRawData); showToast("Request hidden"); };
+        app.acceptRequest = async (id, price, address) => { const btnDiv = document.getElementById(`actions-${id}`); if(btnDiv) btnDiv.innerHTML = `<div class="col-span-2 py-3 bg-blue-100 text-blue-700 text-center rounded-xl font-bold text-sm animate-pulse">Assigning...</div>`; try { await updateDoc(doc(db, "pickups", id), { status: "Assigned", driverId: currentUser.uid, price: Number(price), assignedAt: new Date() }); } catch (e) { console.error(e); app.refreshRequests(); } };
+        app.refreshRequests = () => { const btn = document.querySelector('button[onclick="app.refreshRequests()"] i'); if(btn) { btn.classList.add('fa-spin'); setTimeout(() => btn.classList.remove('fa-spin'), 1000); } processAndRender(currentRawData); };
+        async function loadProfile(uid) { try { const docSnap = await getDoc(doc(db, "users", uid)); if(docSnap.exists()) { const d = docSnap.data(); document.getElementById('header-username').innerText = d.firstName || 'Driver'; document.getElementById('avatar').innerText = (d.firstName || 'D').charAt(0).toUpperCase(); document.getElementById('prof-name').value = d.firstName || ''; document.getElementById('prof-email').value = d.email || currentUser.email; document.getElementById('prof-phone').value = d.phone || ''; const vDetails = d.vehicleDetails || {}; document.getElementById('veh-plate').value = vDetails.plateNumber || d.plateNumber || ''; if(vDetails.type || d.vehicleType) document.getElementById('veh-type').value = vDetails.type || d.vehicleType; } } catch(e) { console.error(e); } }
+        app.saveProfile = async (e) => { e.preventDefault(); const name = document.getElementById('prof-name').value; const phone = document.getElementById('prof-phone').value; const plate = document.getElementById('veh-plate').value; const type = document.getElementById('veh-type').value; try { await updateDoc(doc(db, "users", currentUser.uid), { firstName: name, phone: phone, vehicleType: type, plateNumber: plate, vehicleDetails: { type: type, plateNumber: plate } }); showToast("Profile Updated"); } catch(e) { showToast("Error saving", "error"); } };
+        function fireConfetti() { confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 }, colors: ['#10b981', '#34d399', '#059669'] }); }
+        app.minimizeModal = () => { const modal = document.getElementById('active-job-modal'); modal.classList.remove('open'); modal.classList.add('closed'); setTimeout(() => document.getElementById('active-job-alert').classList.remove('hidden'), 300); };
+        app.maximizeModal = () => { document.getElementById('active-job-alert').classList.add('hidden'); const modal = document.getElementById('active-job-modal'); modal.classList.remove('closed'); modal.classList.add('open'); };
+        function initActiveJobListener(uid) { const q = query(collection(db, "pickups"), where("driverId", "==", uid), where("status", "==", "Assigned")); onSnapshot(q, (snap) => { const modal = document.getElementById('active-job-modal'); const alertBar = document.getElementById('active-job-alert'); if (!snap.empty) { const job = { id: snap.docs[0].id, ...snap.docs[0].data() }; currentActiveJob = job; renderActiveJobData(job); modal.classList.remove('closed'); modal.classList.add('open'); alertBar.classList.add('hidden'); } else { currentActiveJob = null; modal.classList.remove('open'); modal.classList.add('closed'); alertBar.classList.add('hidden'); } }); }
+        
+        // --- UPDATED SEND STATUS (Changed to driverNote) ---
+        app.sendTripUpdate = async (msg, btn) => { 
+            if(!currentActiveJob) return; 
+            const originalContent = btn.innerHTML; 
+            document.querySelectorAll('.status-btn').forEach(b => b.classList.remove('active-status', 'sent', 'sending')); 
+            btn.classList.add('sending'); 
+            btn.innerHTML = `<span class="animate-pulse">Sending...</span>`; 
+            try { 
+                await updateDoc(doc(db, "pickups", currentActiveJob.id), { driverNote: msg }); // CHANGED TO driverNote
+                btn.classList.remove('sending'); 
+                btn.classList.add('sent'); 
+                btn.innerHTML = `✓ Sent`; 
+                setTimeout(() => { btn.classList.remove('sent'); btn.innerHTML = originalContent; }, 3000); 
+                showToast("Status Sent: " + msg); 
+            } catch(e) { console.error(e); btn.classList.remove('sending'); btn.innerHTML = originalContent; showToast("Failed to send status", "error"); } 
+        };
+
+        function renderCharts(historyData, typeCounts) {
+            const ctxWaste = document.getElementById('wasteChart'); const ctxEarn = document.getElementById('earningsChart');
+            if (ctxWaste) { const existingChart = Chart.getChart(ctxWaste); if (existingChart) existingChart.destroy(); }
+            if (ctxEarn) { const existingChart = Chart.getChart(ctxEarn); if (existingChart) existingChart.destroy(); }
+            const labels = Object.keys(typeCounts); const data = Object.values(typeCounts);
+            if(labels.length === 0) { labels.push("No Data"); data.push(1); }
+            const earnsByDate = {}; for(let i=4; i>=0; i--) { const d = new Date(); d.setDate(d.getDate() - i); const str = d.toISOString().split('T')[0]; earnsByDate[str] = 0; }
+            historyData.filter(d => d.status === 'Completed').forEach(d => { const dateStr = d.jsDate.toISOString().split('T')[0]; if (earnsByDate.hasOwnProperty(dateStr)) earnsByDate[dateStr] += Number(d.price); });
+            const sortedDates = Object.keys(earnsByDate).sort(); const sortedEarnData = sortedDates.map(date => earnsByDate[date]); const displayLabels = sortedDates.map(dateStr => { const [y, m, d] = dateStr.split('-'); return `${d}/${m}`; });
+            if(ctxWaste) { new Chart(ctxWaste, { type: 'doughnut', data: { labels: labels, datasets: [{ data: data, backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#a855f7'], borderWidth: 0 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right' } } } }); }
+            if(ctxEarn) { new Chart(ctxEarn, { type: 'bar', data: { labels: displayLabels, datasets: [{ label: 'Earnings (₹)', data: sortedEarnData, backgroundColor: '#10b981', borderRadius: 5 }] }, options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true } } } }); }
+        }
+    </script>
+</body>
+</html>
