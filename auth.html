@@ -72,7 +72,7 @@
     </div>
 
     <nav class="w-full h-20 flex items-center justify-between px-6 lg:px-12 backdrop-blur-md bg-white/70 border-b border-white/50 sticky top-0 z-40">
-        <a href="#" class="flex items-center gap-2 cursor-pointer group">
+        <a href="index.html" class="flex items-center gap-2 cursor-pointer group">
             <div class="w-10 h-10 bg-gradient-to-br from-brand-400 to-brand-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-brand-200 group-hover:scale-105 transition-transform">
                 <i class="fas fa-leaf text-lg"></i>
             </div>
@@ -123,7 +123,8 @@
                             </div>
                             <div><label class="text-[10px] font-bold text-slate-400 uppercase ml-1">Email</label><input type="email" id="res-signup-email" required class="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:border-brand-500 focus:ring-2 focus:ring-brand-100 outline-none"></div>
                             <div><label class="text-[10px] font-bold text-slate-400 uppercase ml-1">Password</label><input type="password" id="res-signup-pass" required class="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:border-brand-500 focus:ring-2 focus:ring-brand-100 outline-none"></div>
-                            <button type="submit" class="w-full bg-brand-600 hover:bg-brand-700 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-brand-200 transition-all hover:-translate-y-0.5">Register & Verify</button>
+
+                            <button type="submit" class="w-full bg-brand-600 hover:bg-brand-700 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-brand-200 transition-all hover:-translate-y-0.5">Register</button>
                         </form>
                     </div>
 
@@ -177,6 +178,7 @@
                                 <div><label class="text-[10px] font-bold text-slate-400 uppercase ml-1">Email</label><input type="email" id="driver-signup-email" required class="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none"></div>
                                 <div><label class="text-[10px] font-bold text-slate-400 uppercase ml-1">Password</label><input type="password" id="driver-signup-pass" required class="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none"></div>
                             </div>
+                            
                             <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl shadow-lg shadow-blue-200 transition-all hover:-translate-y-0.5">Register</button>
                         </form>
                     </div>
@@ -189,10 +191,7 @@
             </div>
 
             <div id="right-side-panel" class="hidden md:flex md:w-1/2 relative gradient-resident animate-gradient-move flex-col items-center justify-center p-8 text-white overflow-hidden transition-all duration-700">
-                
-                <div id="shapes-container" class="absolute inset-0 pointer-events-none">
-                    </div>
-
+                <div id="shapes-container" class="absolute inset-0 pointer-events-none"></div>
                 <div class="z-10 text-center max-w-sm min-h-[150px] flex flex-col items-center justify-center backdrop-blur-sm bg-white/5 p-6 rounded-2xl border border-white/10 shadow-xl">
                     <i class="fas fa-quote-left text-white/60 text-3xl mb-4 self-start"></i>
                     <div id="quote-container" class="transition-all duration-500 mb-4">
@@ -204,7 +203,6 @@
                         <div class="w-2.5 h-2.5 bg-white/40 rounded-full"></div>
                     </div>
                 </div>
-
             </div>
 
         </div>
@@ -214,7 +212,6 @@
         let currentRole = 'resident'; 
         let currentMode = 'login';     
 
-        // --- Data ---
         const quotesResident = [
             "Small steps in recycling make a giant leap for nature.",
             "EcoTrack: Turning your waste into a resource for the future.",
@@ -229,7 +226,6 @@
             "Empowering drivers to make a difference every day."
         ];
 
-        // --- Pure CSS HTML Content for Animations ---
         const shapesResident = `
             <div class="glass-shape absolute top-[10%] left-[10%] w-20 h-20 rounded-2xl flex items-center justify-center animate-float-slow text-white/40 text-3xl rotate-12"><i class="fas fa-leaf"></i></div>
             <div class="glass-shape absolute top-[60%] right-[15%] w-24 h-24 rounded-full flex items-center justify-center animate-float-medium text-white/30 text-4xl -rotate-12"><i class="fas fa-recycle"></i></div>
@@ -245,31 +241,21 @@
         `;
 
         let quoteInterval;
-
-        // UI Elements
         const rightPanel = document.getElementById('right-side-panel');
         const quoteContainer = document.getElementById('quote-container');
         const shapesContainer = document.getElementById('shapes-container');
         
-        // --- Functions ---
-
         function startQuoteCarousel(role) {
             if (quoteInterval) clearInterval(quoteInterval);
-            
             const quotes = role === 'resident' ? quotesResident : quotesDriver;
             let index = 0;
             const p = quoteContainer.querySelector('p');
-
-            // Immediate update
             p.innerText = quotes[0];
             shapesContainer.innerHTML = role === 'resident' ? shapesResident : shapesDriver;
 
             quoteInterval = setInterval(() => {
                 index = (index + 1) % quotes.length;
-                
-                // Simple Fade Text
                 quoteContainer.style.opacity = '0';
-                
                 setTimeout(() => {
                     quoteContainer.innerHTML = `<p class="text-xl md:text-2xl font-bold leading-relaxed drop-shadow-md">${quotes[index]}</p>`;
                     quoteContainer.style.opacity = '1';
@@ -282,10 +268,8 @@
             const toast = document.createElement('div');
             const colors = type === 'success' ? 'bg-green-500' : 'bg-red-500';
             const icon = type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle';
-
             toast.className = `${colors} text-white px-6 py-4 rounded-xl shadow-xl flex items-center gap-3 transform transition-all duration-300 translate-x-full opacity-0 min-w-[300px] z-50`;
             toast.innerHTML = `<i class="fas ${icon}"></i> <span class="font-medium text-sm">${message}</span>`;
-            
             container.appendChild(toast);
             requestAnimationFrame(() => toast.classList.remove('translate-x-full', 'opacity-0'));
             setTimeout(() => {
@@ -303,21 +287,14 @@
             const drvBtn = document.getElementById('btn-role-driver');
 
             if(currentRole === 'resident') {
-                // Styles
                 resBtn.className = "flex-1 py-2.5 text-sm font-bold rounded-xl transition-all shadow-sm border-2 border-green-500 text-green-700 bg-green-50";
                 drvBtn.className = "flex-1 py-2.5 text-sm font-bold rounded-xl transition-all border border-slate-200 text-slate-400 bg-transparent hover:bg-white/60";
-                
                 document.getElementById('role-resident-forms').classList.remove('hidden');
                 document.getElementById('role-driver-forms').classList.add('hidden');
-                
                 toggleBtnEl.className = "text-brand-600 font-bold hover:underline transition-colors mt-1";
-                
-                // Right Panel -> Gradient Resident
                 rightPanel.classList.remove('gradient-driver');
                 rightPanel.classList.add('gradient-resident');
-                
                 startQuoteCarousel('resident');
-
                 if(currentMode === 'login') {
                     document.getElementById('form-resident-login').classList.remove('hidden');
                     document.getElementById('form-resident-signup').classList.add('hidden');
@@ -325,23 +302,15 @@
                     document.getElementById('form-resident-login').classList.add('hidden');
                     document.getElementById('form-resident-signup').classList.remove('hidden');
                 }
-
             } else { 
-                // Driver Styles
                 drvBtn.className = "flex-1 py-2.5 text-sm font-bold rounded-xl transition-all shadow-sm border-2 border-blue-500 text-blue-700 bg-blue-50";
                 resBtn.className = "flex-1 py-2.5 text-sm font-bold rounded-xl transition-all border border-slate-200 text-slate-400 bg-transparent hover:bg-white/60";
-                
                 document.getElementById('role-resident-forms').classList.add('hidden');
                 document.getElementById('role-driver-forms').classList.remove('hidden');
-
                 toggleBtnEl.className = "text-blue-600 font-bold hover:underline transition-colors mt-1";
-
-                // Right Panel -> Gradient Driver
                 rightPanel.classList.remove('gradient-resident');
                 rightPanel.classList.add('gradient-driver');
-
                 startQuoteCarousel('driver');
-
                 if(currentMode === 'login') {
                     document.getElementById('form-driver-login').classList.remove('hidden');
                     document.getElementById('form-driver-signup').classList.add('hidden');
@@ -350,8 +319,6 @@
                     document.getElementById('form-driver-signup').classList.remove('hidden');
                 }
             }
-
-            // Text Updates
             if (currentMode === 'login') {
                 titleEl.textContent = "Welcome Back";
                 subtitleEl.textContent = currentRole === 'resident' ? "Login to schedule your pickup." : "Access your driver portal.";
@@ -378,7 +345,6 @@
             updateUI();
         }
 
-        // Initialize
         updateUI();
     </script>
 
@@ -389,9 +355,19 @@
             signInWithEmailAndPassword, 
             updateProfile, 
             signOut,
-            sendEmailVerification 
+            onAuthStateChanged 
         } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
         import { doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        // --- CHANGED: FORCE SIGN OUT ON PAGE LOAD ---
+        // This ensures the user must always log in when visiting auth.html
+        // and is not auto-redirected by a previous session.
+        signOut(auth).then(() => {
+            console.log("User session cleared for fresh login.");
+        }).catch((error) => {
+            console.log("No user to sign out.");
+        });
+        // ------------------------------------------------
 
         window.handleAuth = async function(e, mode, role) {
             e.preventDefault();
@@ -411,20 +387,17 @@
                         const fname = document.getElementById('res-signup-fname').value;
                         const lname = document.getElementById('res-signup-lname').value || '';
                         
-                        // 1. Create Auth User
                         const cred = await createUserWithEmailAndPassword(auth, email, pass);
-                        await sendEmailVerification(cred.user);
-                        
                         await updateProfile(cred.user, { displayName: `${fname} ${lname}`.trim() });
                         
-                        // 2. Lock Role in Firestore
                         await setDoc(doc(db, "users", cred.user.uid), { 
                             firstName: fname, lastName: lname, email, role: 'resident', createdAt: new Date() 
                         });
 
-                        await signOut(auth);
-                        showToast(`Verification email sent to ${email}`, 'success');
-                        setTimeout(() => location.reload(), 2000);
+                        showToast(`Account created! Redirecting to dashboard...`, 'success');
+                        setTimeout(() => {
+                             window.location.href = 'resident.html';
+                        }, 1500);
 
                     } else { 
                         email = document.getElementById('driver-signup-email').value;
@@ -435,22 +408,19 @@
                         const plateNo = document.getElementById('driver-signup-plate').value;
                         const licenseNo = document.getElementById('driver-signup-license').value;
 
-                        // 1. Create Auth User
                         const cred = await createUserWithEmailAndPassword(auth, email, pass);
-                        await sendEmailVerification(cred.user);
-
                         await updateProfile(cred.user, { displayName: name });
                         
-                        // 2. Lock Role in Firestore
                         await setDoc(doc(db, "users", cred.user.uid), { 
                             firstName: name, email, phone: phone, role: 'driver', 
                             vehicleDetails: { type: vehicleType, plateNumber: plateNo, licenseNumber: licenseNo },
                             status: 'active', createdAt: new Date() 
                         });
 
-                        await signOut(auth);
-                        showToast(`Driver account created! Check email.`, 'success');
-                        setTimeout(() => location.reload(), 2000);
+                        showToast(`Driver account created! Redirecting...`, 'success');
+                        setTimeout(() => {
+                             window.location.href = 'driver.html';
+                        }, 1500);
                     }
                 } else { 
                     // LOGIN LOGIC
@@ -464,19 +434,12 @@
 
                     const cred = await signInWithEmailAndPassword(auth, email, pass);
                     
-                    if (!cred.user.emailVerified) {
-                        await signOut(auth);
-                        throw new Error("Email not verified. Please check your inbox.");
-                    }
-
-                    // 3. SECURITY CHECK: Verify Role from Firestore
                     const docSnap = await getDoc(doc(db, "users", cred.user.uid));
                     if(docSnap.exists()) {
                         const storedRole = docSnap.data().role;
                         
-                        // STRICT ROLE ENFORCEMENT
                         if (storedRole !== role) {
-                            await signOut(auth); // Force logout immediately
+                            await signOut(auth); 
                             const correctRole = storedRole.charAt(0).toUpperCase() + storedRole.slice(1);
                             throw new Error(`Access Denied: This account is registered as a ${correctRole}. Please switch tabs to log in.`);
                         }
