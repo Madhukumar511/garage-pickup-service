@@ -1,6 +1,7 @@
 # 🌱 EcoTrack - Smart Waste Management Platform
 
-### Team EcoForge | "Clean India, Green Future"
+### Team EcoForge
+> 🇮🇳 **"Clean India, Green Future"** 🌿
 
 EcoTrack is a smart waste management platform that connects Residents (waste generators) with Drivers (waste collectors). We gamify recycling to reduce landfill overflow and optimize logistics.
 
