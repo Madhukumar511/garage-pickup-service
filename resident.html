@@ -420,7 +420,7 @@
                     <div class="bg-white dark:bg-darkcard border border-brand-200 dark:border-slate-700 text-slate-800 dark:text-white rounded-3xl p-5 shadow-sm flex flex-col justify-center items-center text-center cursor-pointer hover:border-brand-500 transition-colors group" onclick="app.switchView('report')">
                         <div class="w-10 h-10 bg-red-50 dark:bg-red-900/20 text-red-500 rounded-full flex items-center justify-center text-lg mb-2 group-hover:scale-110 transition-transform"><i class="fas fa-camera"></i></div>
                         <h3 class="font-bold text-sm mb-1">Spot a Dump?</h3>
-                        <p class="text-[10px] text-slate-500 mb-3 px-2">Report illegal dumping and earn karma points.</p>
+                        <p class="text-[10px] text-slate-500 mb-3 px-2">Report illegal dumping and earn Eco points.</p>
                         <span class="text-[10px] font-bold text-brand-600 uppercase tracking-wider group-hover:underline">Report Now <i class="fas fa-arrow-right ml-1"></i></span>
                     </div>
                 </div>
@@ -1612,7 +1612,16 @@ function setupReportSearchListener() {
         };
 
         app.toggleDarkMode = () => document.documentElement.classList.toggle('dark');
-        app.logout = () => { if(confirm("Log out?")) signOut(auth).then(() => window.location.href = 'index.html'); };
+       app.logout = () => { 
+    if(confirm("Log out?")) {
+        // Clear user-specific local data to prevent "Negative Points" bug
+        localStorage.removeItem('eco_spentPoints');
+        localStorage.removeItem('eco_withdrawnCash');
+        localStorage.removeItem('eco_convertedCash');
+        
+        signOut(auth).then(() => window.location.href = 'index.html'); 
+    }
+};
         
         async function loadUserData(uid) { 
             try { 
